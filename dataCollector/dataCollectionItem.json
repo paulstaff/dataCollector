@@ -1,0 +1,14 @@
+{
+    "_id": "88hOIFNEoihefo2ho8fhj32fN",
+    "serviceId": "OIif8oJOFxhohf309hFb929",
+    "timestamp": 12398712894,
+    "ipAddress": "123.145.167.189",
+    "data": {
+        "username": "testuser",
+        "email": "test@test.come",
+        "name": "Test User"
+    },
+    "extraneousData": {
+        "someOtherField": "someOtherData"
+    }
+}

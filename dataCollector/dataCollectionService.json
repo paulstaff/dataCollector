@@ -1,0 +1,15 @@
+{
+    "_id": "OIif8oJOFxhohf309hFb929",
+    "name": "User Data Collection",
+    "description": "This service collects information about users entered into a form",
+    "authenticationToken": "OInoiNFOE9e898h318hcw3",
+    "status": 1,
+    "options": {
+        "allowExtraneousProperties": 0
+    },
+    "template": [
+        { "property": "username", "type": "text" },
+        { "property": "email", "type": "text" },
+        { "property": "name", "type": "text" }
+    ]
+}
