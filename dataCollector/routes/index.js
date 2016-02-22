@@ -64,31 +64,67 @@ var API_PREFIX = '/api/v1';
 var COLL_COLLECTORS = 'testCollectors';
 var COLL_RECORDS = 'testRecords';
 
+var OPT_TRUE = 1;
+var OPT_FALSE = 0;
+
+var TEMPLATE_TYPE_TXT = 'text';
+var TEMPLATE_TYPE_INT = 'integer';
+var TEMPLATE_TYPE_DEC = 'decimal';
+var TEMPLATE_TYPE_OBJ = 'object';
+
 /* POST user - API call to create user */
 
 /* GET user - API call to log user in */
 
 /* PUT user - API call to update user info */
 
-/* Create collector service */
+// Create new collector service
 router.post(API_PREFIX + '/collectors', function(req, res) {
+
+    // Initialize database and collection variables
     var db = req.db;
+    var collCollectors = db.get(COLL_COLLECTORS);
 
-    var collection = db.get(COLL_COLLECTORS);
-
+    // Create the collector object
     var collector = {
         'name': req.body.name,
         'description': req.body.description,
         'authToken': util.generateAuthToken(),
         'status': 1,
-        'template': req.body.template
+        'template': [],
+        'options': {
+            'allowExtraFields': OPT_TRUE
+        }
     };
 
-    collection.insert(collector, function(err, result) {
-        if(err) {
-            res.send('There was an issue creating the collector.');
+    // Set the allowExtraFields option
+    if (req.body.options.allowExtraFields == OPT_FALSE) {
+        collector.options.allowExtraFields = OPT_FALSE;
+    }
+
+    // Loop through all fields in the template
+    for (var i = 0; i < req.body.template.length; i++) {
+
+        // Test that a field name exists and the field type is specified
+        if (req.body.template[i].hasOwnProperty('fieldname') &&
+                req.body.template[i].fieldname != '' &&
+                req.body.template[i].hasOwnProperty('type') && (
+                req.body.template[i].type == TEMPLATE_TYPE_TXT ||
+                req.body.template[i].type == TEMPLATE_TYPE_INT ||
+                req.body.template[i].type == TEMPLATE_TYPE_DEC ||
+                req.body.template[i].type == TEMPLATE_TYPE_OBJ )) {
+
+            // Push the field into the collector template
+            collector.template.push( { 'fieldname': req.body.template[i].fieldname, 'type': req.body.template[i].type } );
+        }
+    }
+
+    // Insert the collector object into the database collection
+    collCollectors.insert(collector, function(err, result) {
+        if (err) {
+            res.status(err.error.status).json(err);
         } else {
-            res.json(result);
+            res.status(200).json(result);
         }
     })
 });
