@@ -11,7 +11,23 @@ util.generateAuthToken = function() {
 
 };
 
+util.generateSuccess = function(response) {
+    return {
+        error: null,
+        response: response
+    };
+};
 
+util.generateError = function(displayMsg, httpStatus, devMsg) {
+    return {
+        error: {
+            displayMsg: displayMsg,
+            status: httpStatus,
+            devMsg: devMsg
+        },
+        response: null
+    };
+};
 
 
 

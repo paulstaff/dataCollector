@@ -2,17 +2,18 @@ var express = require('express');
 var util = require('../util/util.js');
 var router = express.Router();
 
-/* GET home page. */
+/*
+// GET home page.
 router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
-/* GET helloworld page */
+// GET helloworld page
 router.get('/helloworld', function(req, res) {
     res.render('helloworld', { title: 'Hello World!' });
 });
 
-/* GET userlist page */
+// GET userlist page
 router.get('/userlist', function(req, res) {
     var db = req.db;
     var collection = db.get('usercollection');
@@ -23,12 +24,12 @@ router.get('/userlist', function(req, res) {
     });
 });
 
-/* GET newuser page */
+// GET newuser page
 router.get('/newuser', function(req, res) {
     res.render('newuser', {title: 'Add New User'});
 });
 
-/* POST to adduser service */
+// POST to adduser service
 router.post('/adduser', function(req, res) {
 
     // Set internal DB
@@ -57,8 +58,10 @@ router.post('/adduser', function(req, res) {
     })
 });
 
+*/
+
 var API_PREFIX = '/api/v1';
-var COLLECTION_COLLECTORS = 'testCollectors';
+var COLL_COLLECTORS = 'testCollectors';
 var COLL_RECORDS = 'testRecords';
 
 /* POST user - API call to create user */
@@ -71,7 +74,7 @@ var COLL_RECORDS = 'testRecords';
 router.post(API_PREFIX + '/collectors', function(req, res) {
     var db = req.db;
 
-    var collection = db.get(COLLECTION_COLLECTORS);
+    var collection = db.get(COLL_COLLECTORS);
 
     var collector = {
         'name': req.body.name,
@@ -93,7 +96,7 @@ router.post(API_PREFIX + '/collectors', function(req, res) {
 /* GET collectors - API call to get all collectors TODO: remove this call for production*/
 router.get(API_PREFIX + '/collectors', function(req, res) {
     var db = req.db;
-    var collection = db.get(COLLECTION_COLLECTORS);
+    var collection = db.get(COLL_COLLECTORS);
 
     collection.find({},{},function(e,docs) {
         res.json(docs);
@@ -103,7 +106,7 @@ router.get(API_PREFIX + '/collectors', function(req, res) {
 /* GET collector - API call to get collector service info */
 router.get(API_PREFIX + '/collectors/:id', function(req, res) {
     var db = req.db;
-    var collection = db.get(COLLECTION_COLLECTORS);
+    var collection = db.get(COLL_COLLECTORS);
     var collectorId = req.params.id;
 
     collection.findOne({ '_id': collectorId }, function(err, result) {
@@ -118,7 +121,7 @@ router.get(API_PREFIX + '/collectors/:id', function(req, res) {
 /* PUT collector - API call to update collector service info */
 router.put(API_PREFIX + '/collectors/:id', function(req, res) {
     var db = req.db;
-    var collection = db.get(COLLECTION_COLLECTORS);
+    var collection = db.get(COLL_COLLECTORS);
 
     var collector = {
         '_id': req.params.id,
@@ -141,7 +144,7 @@ router.put(API_PREFIX + '/collectors/:id', function(req, res) {
 /* GET authorization token - API call to generate new authorization token for collector service */
 router.get(API_PREFIX + '/collectors/:id/generateAuthToken', function(req, res) {
     var db = req.db;
-    var collection = db.get(COLLECTION_COLLECTORS);
+    var collection = db.get(COLL_COLLECTORS);
     var collectorId = req.params.id;
 
     collection.findAndModify({ '_id': collectorId }, { $set: { 'authToken': util.generateAuthToken() } }, { 'new': true }, function(err, result) {
@@ -156,7 +159,7 @@ router.get(API_PREFIX + '/collectors/:id/generateAuthToken', function(req, res) 
 /* POST record - API call to post data record to collector service */
 router.post(API_PREFIX + '/collectors/:authToken/records', function(req, res) {
     var db = req.db;
-    var collection = db.get(COLLECTION_COLLECTORS);
+    var collection = db.get(COLL_COLLECTORS);
     var authToken = req.params.authToken;
 
     collection.findOne({ 'authToken': authToken }, function(err, result) {
@@ -189,7 +192,7 @@ router.post(API_PREFIX + '/collectors/:authToken/records', function(req, res) {
                 if(err) {
                     res.json(err);
                 } else {
-                    res.json(result);
+                    res.status(200).json(result);
                 }
             });
         } else {
@@ -204,7 +207,9 @@ router.get(API_PREFIX + '/collectors/:id/records', function(req, res) {
     var db = req.db;
     var collRecords = db.get(COLL_RECORDS);
 
-    collRecords.find({ 'collectorId': req.params.id }, {}, function(err, result) {
+    var ObjectID = require('mongodb').ObjectID;
+
+    collRecords.find({ 'collectorId': ObjectID(req.params.id) }, {}, function(err, result) {
         if(err) {
             res.json(err);
         } else {
