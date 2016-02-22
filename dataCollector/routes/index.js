@@ -1,4 +1,5 @@
 var express = require('express');
+var util = require('../util/util.js');
 var router = express.Router();
 
 /* GET home page. */
@@ -58,7 +59,7 @@ router.post('/adduser', function(req, res) {
 
 var API_PREFIX = '/api/v1';
 var COLLECTION_COLLECTORS = 'testCollectors';
-
+var COLL_RECORDS = 'testRecords';
 
 /* POST user - API call to create user */
 
@@ -75,7 +76,7 @@ router.post(API_PREFIX + '/collectors', function(req, res) {
     var collector = {
         'name': req.body.name,
         'description': req.body.description,
-        'authToken': '123',
+        'authToken': util.generateAuthToken(),
         'status': 1,
         'template': req.body.template
     };
@@ -116,22 +117,100 @@ router.get(API_PREFIX + '/collectors/:id', function(req, res) {
 
 /* PUT collector - API call to update collector service info */
 router.put(API_PREFIX + '/collectors/:id', function(req, res) {
+    var db = req.db;
+    var collection = db.get(COLLECTION_COLLECTORS);
 
+    var collector = {
+        '_id': req.params.id,
+        'name': req.body.name,
+        'description': req.body.description,
+        'authToken': req.body.authToken,
+        'status': req.body.status,
+        'template': req.body.template
+    };
+
+    collection.findAndModify({ '_id': collector._id }, collector, { 'new': true }, function(err, result) {
+        if(err) {
+            res.send('There was an issue modifying the collector.');
+        } else {
+            res.json(result);
+        }
+    });
 });
 
 /* GET authorization token - API call to generate new authorization token for collector service */
 router.get(API_PREFIX + '/collectors/:id/generateAuthToken', function(req, res) {
+    var db = req.db;
+    var collection = db.get(COLLECTION_COLLECTORS);
+    var collectorId = req.params.id;
 
+    collection.findAndModify({ '_id': collectorId }, { $set: { 'authToken': util.generateAuthToken() } }, { 'new': true }, function(err, result) {
+        if(err) {
+            res.send('There was an issue modifying the collector.');
+        } else {
+            res.json(result);
+        }
+    });
 });
 
 /* POST record - API call to post data record to collector service */
-router.post(API_PREFIX + '/collectors/:id/records', function(req, res) {
+router.post(API_PREFIX + '/collectors/:authToken/records', function(req, res) {
+    var db = req.db;
+    var collection = db.get(COLLECTION_COLLECTORS);
+    var authToken = req.params.authToken;
+
+    collection.findOne({ 'authToken': authToken }, function(err, result) {
+        if(result !== null) {
+            var collRecords = db.get(COLL_RECORDS);
+
+            var record = {
+                'timestamp': Date.now(),
+                'ipAddress': req.ip,
+                'collectorId': result._id,
+                'data': {},
+                'extraFields': {}
+            };
+
+            var i;
+
+            for(i = 0; i < result.template.length; i++) {
+                record.data[result.template[i].property] = '';
+            }
+
+            for(var key in req.body.data) {
+                if(record.data.hasOwnProperty(key)) {
+                    record.data[key] = req.body.data[key];
+                } else {
+                    record.extraFields[key] = req.body.data[key];
+                }
+            }
+
+            collRecords.insert(record, function(err, result) {
+                if(err) {
+                    res.json(err);
+                } else {
+                    res.json(result);
+                }
+            });
+        } else {
+            res.send('Invalid authentication token!');
+        }
+    });
 
 });
 
 /* GET records - API call to get all records for a collector service */
 router.get(API_PREFIX + '/collectors/:id/records', function(req, res) {
+    var db = req.db;
+    var collRecords = db.get(COLL_RECORDS);
 
+    collRecords.find({ 'collectorId': req.params.id }, {}, function(err, result) {
+        if(err) {
+            res.json(err);
+        } else {
+            res.json(result);
+        }
+    });
 });
 
 module.exports = router;
