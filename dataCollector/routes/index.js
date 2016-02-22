@@ -61,6 +61,7 @@ router.post('/adduser', function(req, res) {
 */
 
 var API_PREFIX = '/api/v1';
+var COLL_USERS = 'testUsers';
 var COLL_COLLECTORS = 'testCollectors';
 var COLL_RECORDS = 'testRecords';
 
@@ -77,12 +78,78 @@ var TEMPLATE_TYPE_OBJ = 'object';
 
 var ERR_COLLECTOR_DOES_NOT_EXIST = 'The collector requested does not exist. Check that the _id provided is correct.';
 var ERR_INVALID_AUTH_TOKEN = 'The authentication token provided is not valid. Check that the authentication token for your data collector service has not been changed.';
+var ERR_INACTIVE_COLLECTOR = 'The data collector service attempting to be reached is not currently active.';
 
-/* POST user - API call to create user */
+// POST user - API call to create user
+router.post(API_PREFIX + '/users', function(req, res) {
 
-/* GET user - API call to log user in */
+    // Initialize database and collection variables
+    var db = req.db;
+    var collUsers = db.get(COLL_USERS);
 
-/* PUT user - API call to update user info */
+    // Initialize user object
+    var user = {
+        'email': req.body.email,
+        'password': req.body.password,
+        'status': STATUS_ACTIVE
+    };
+
+    // Insert the user object into the database collection
+    collUsers.insert(user, function(err, result) {
+        if (err) {
+            res.status(err.error.status).json(err);
+        } else {
+            res.status(200).json(result);
+        }
+    });
+});
+
+// GET user - API call to retrieve user info
+router.get(API_PREFIX + '/users/:id', function(req, res) {
+
+    // Initialize database and collection variables
+    var db = req.db;
+    var collUsers = db.get(COLL_USERS);
+
+    // Retrieve the specified user object from the database collection
+    collUsers.findOne({ '_id': req.params.id }, function(err, result) {
+        if (err) {
+            res.status(err.error.status).json(err);
+        } else {
+            res.status(200).json(result);
+        }
+    });
+});
+
+// PUT user - API call to update user info
+router.put(API_PREFIX + '/users/:id', function(req, res) {
+
+    // Initialize database and collection variables
+    var db = req.db;
+    var collUsers = db.get(COLL_USERS);
+
+    // Initialize user object
+    var user = {
+        '_id': req.params.id,
+        'email': req.body.email,
+        'password': req.body.password,
+        'status': STATUS_ACTIVE
+    };
+
+    // Set the status of the user
+    if (req.body.status == STATUS_INACTIVE) {
+        user.status = STATUS_INACTIVE;
+    }
+
+    // Insert the user object into the database collection
+    collUsers.findAndModify({ '_id': user._id }, { $set: user }, { 'new': true }, function(err, result) {
+        if (err) {
+            res.status(err.error.status).json(err);
+        } else {
+            res.status(200).json(result);
+        }
+    });
+});
 
 // POST collector object - API call to create new collector service
 router.post(API_PREFIX + '/collectors', function(req, res) {
@@ -264,6 +331,9 @@ router.post(API_PREFIX + '/collectors/:authToken/records', function(req, res) {
         if (result === null) {
             err = util.generateError(ERR_INVALID_AUTH_TOKEN, 404, ERR_INVALID_AUTH_TOKEN);
             res.status(err.error.status).json(err);
+        } else if (result.status == STATUS_INACTIVE) {
+            err = util.generateError(ERR_INACTIVE_COLLECTOR, 404, ERR_INACTIVE_COLLECTOR);
+            res.status(err.error.status).json(err);
         } else {
 
             // Initialize the record object
@@ -281,7 +351,7 @@ router.post(API_PREFIX + '/collectors/:authToken/records', function(req, res) {
 
             // Loop through template and add all fields to the record data
             for(var i = 0; i < result.template.length; i++) {
-                record.data[result.template[i].property] = '';
+                record.data[result.template[i].fieldname] = '';
             }
 
             // Loop through all data properties in the request
@@ -309,16 +379,20 @@ router.post(API_PREFIX + '/collectors/:authToken/records', function(req, res) {
 
 /* GET records - API call to get all records for a collector service */
 router.get(API_PREFIX + '/collectors/:id/records', function(req, res) {
+
+    // Initialize database and collection variables
     var db = req.db;
     var collRecords = db.get(COLL_RECORDS);
 
+    // Include Mongo ObjectID to properly search for the collector service ID in the query
     var ObjectID = require('mongodb').ObjectID;
 
+    // Retrieve all records associated with the collector service
     collRecords.find({ 'collectorId': ObjectID(req.params.id) }, {}, function(err, result) {
-        if(err) {
-            res.json(err);
+        if (err) {
+            res.status(err.error.status).json(err);
         } else {
-            res.json(result);
+            res.status(200).json(result);
         }
     });
 });
