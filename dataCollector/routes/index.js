@@ -64,6 +64,9 @@ var API_PREFIX = '/api/v1';
 var COLL_COLLECTORS = 'testCollectors';
 var COLL_RECORDS = 'testRecords';
 
+var STATUS_ACTIVE = 1;
+var STATUS_INACTIVE = 0;
+
 var OPT_TRUE = 1;
 var OPT_FALSE = 0;
 
@@ -78,23 +81,23 @@ var TEMPLATE_TYPE_OBJ = 'object';
 
 /* PUT user - API call to update user info */
 
-// Create new collector service
+// POST collector object - API call to create new collector service
 router.post(API_PREFIX + '/collectors', function(req, res) {
 
     // Initialize database and collection variables
     var db = req.db;
     var collCollectors = db.get(COLL_COLLECTORS);
 
-    // Create the collector object
+    // Initialize the collector object
     var collector = {
         'name': req.body.name,
         'description': req.body.description,
         'authToken': util.generateAuthToken(),
-        'status': 1,
-        'template': [],
+        'status': STATUS_ACTIVE,
         'options': {
             'allowExtraFields': OPT_TRUE
-        }
+        },
+        'template': []
     };
 
     // Set the allowExtraFields option
@@ -139,40 +142,84 @@ router.get(API_PREFIX + '/collectors', function(req, res) {
     });
 });
 
-/* GET collector - API call to get collector service info */
+// GET collector object - API call to get collector service info
 router.get(API_PREFIX + '/collectors/:id', function(req, res) {
-    var db = req.db;
-    var collection = db.get(COLL_COLLECTORS);
-    var collectorId = req.params.id;
 
-    collection.findOne({ '_id': collectorId }, function(err, result) {
-        if(err) {
-            res.json(err);
+    // Initialize database and collection variables
+    var db = req.db;
+    var collCollectors = db.get(COLL_COLLECTORS);
+
+    // Retrieve the specified collector service object from the database collection
+    collCollectors.findOne({ '_id': req.params.id }, function(err, result) {
+        if (err) {
+            res.status(err.error.status).json(err);
         } else {
-            res.json(result);
+            res.status(200).json(result);
         }
     });
 });
 
-/* PUT collector - API call to update collector service info */
+// PUT collector object - API call to update collector service info
 router.put(API_PREFIX + '/collectors/:id', function(req, res) {
+
+    // Initialize database and collection variables
     var db = req.db;
-    var collection = db.get(COLL_COLLECTORS);
+    var collCollectors = db.get(COLL_COLLECTORS);
 
-    var collector = {
-        '_id': req.params.id,
-        'name': req.body.name,
-        'description': req.body.description,
-        'authToken': req.body.authToken,
-        'status': req.body.status,
-        'template': req.body.template
-    };
-
-    collection.findAndModify({ '_id': collector._id }, collector, { 'new': true }, function(err, result) {
-        if(err) {
-            res.send('There was an issue modifying the collector.');
+    // Retrieve the specified collector service object from the database collection
+    collCollectors.findOne({ '_id': req.params.id }, function(err, result) {
+        if (err) {
+            res.status(err.error.status).json(err);
         } else {
-            res.json(result);
+
+            // Initialize the collector object
+            var collector = {
+                '_id': req.params.id,
+                'name': req.body.name,
+                'description': req.body.description,
+                'authToken': result.authToken,
+                'status': STATUS_ACTIVE,
+                'options': {
+                    'allowExtraFields': OPT_TRUE
+                },
+                'template': []
+            };
+
+            // Set the status of the collector
+            if (req.body.status == STATUS_INACTIVE) {
+                collector.status = STATUS_INACTIVE;
+            }
+
+            // Set the allowExtraFields option
+            if (req.body.options.allowExtraFields == OPT_FALSE) {
+                collector.options.allowExtraFields = OPT_FALSE;
+            }
+
+            // Loop through all fields in the template
+            for (var i = 0; i < req.body.template.length; i++) {
+
+                // Test that a field name exists and the field type is specified
+                if (req.body.template[i].hasOwnProperty('fieldname') &&
+                    req.body.template[i].fieldname != '' &&
+                    req.body.template[i].hasOwnProperty('type') && (
+                    req.body.template[i].type == TEMPLATE_TYPE_TXT ||
+                    req.body.template[i].type == TEMPLATE_TYPE_INT ||
+                    req.body.template[i].type == TEMPLATE_TYPE_DEC ||
+                    req.body.template[i].type == TEMPLATE_TYPE_OBJ )) {
+
+                    // Push the field into the collector template
+                    collector.template.push( { 'fieldname': req.body.template[i].fieldname, 'type': req.body.template[i].type } );
+                }
+            }
+
+            // Modify the current document to reflect changes
+            collCollectors.findAndModify({ '_id': collector._id }, collector, { 'new': true }, function(err, result) {
+                if (err) {
+                    res.status(err.error.status).json(err);
+                } else {
+                    res.status(200).json(result);
+                }
+            });
         }
     });
 });
