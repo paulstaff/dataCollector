@@ -2,66 +2,9 @@ var express = require('express');
 var util = require('../util/util.js');
 var router = express.Router();
 
-/*
-// GET home page.
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
-});
-
-// GET helloworld page
-router.get('/helloworld', function(req, res) {
-    res.render('helloworld', { title: 'Hello World!' });
-});
-
-// GET userlist page
-router.get('/userlist', function(req, res) {
-    var db = req.db;
-    var collection = db.get('usercollection');
-    collection.find({},{},function(e, docs){
-        res.render('userlist', {
-            "userlist": docs
-        })
-    });
-});
-
-// GET newuser page
-router.get('/newuser', function(req, res) {
-    res.render('newuser', {title: 'Add New User'});
-});
-
-// POST to adduser service
-router.post('/adduser', function(req, res) {
-
-    // Set internal DB
-    var db = req.db;
-
-    // Get form values from name attributes
-    var userName = req.body.username;
-    var userEmail = req.body.useremail;
-
-    // Set collection
-    var collection = db.get('usercollection');
-
-    // Insert into the DB
-    collection.insert({
-        "username": userName,
-        "email": userEmail
-    }, function (err, doc) {
-        if (err) {
-            // If insert fails, return error
-            res.send("There was a problem adding the information to the database.");
-        }
-        else {
-            // Forward to the success page
-            res.redirect("userlist");
-        }
-    })
-});
-
-*/
-
 var API_PREFIX = '/api/v1';
 var COLL_USERS = 'testUsers';
+var COLL_SESSIONS = 'testSesssions';
 var COLL_COLLECTORS = 'testCollectors';
 var COLL_RECORDS = 'testRecords';
 
@@ -76,6 +19,7 @@ var TEMPLATE_TYPE_INT = 'integer';
 var TEMPLATE_TYPE_DEC = 'decimal';
 var TEMPLATE_TYPE_OBJ = 'object';
 
+var ERR_INVALID_LOGIN_CREDENTIALS = 'The provided login credentials do not match an existing user. Ensure that the email and password are entered correctly.';
 var ERR_COLLECTOR_DOES_NOT_EXIST = 'The collector requested does not exist. Check that the _id provided is correct.';
 var ERR_INVALID_AUTH_TOKEN = 'The authentication token provided is not valid. Check that the authentication token for your data collector service has not been changed.';
 var ERR_INACTIVE_COLLECTOR = 'The data collector service attempting to be reached is not currently active.';
@@ -105,7 +49,7 @@ router.post(API_PREFIX + '/users', function(req, res) {
 });
 
 // GET user - API call to retrieve user info
-router.get(API_PREFIX + '/users/:id', function(req, res) {
+router.get(API_PREFIX + '/users/:id', util.validateSession, function(req, res) {
 
     // Initialize database and collection variables
     var db = req.db;
@@ -122,7 +66,7 @@ router.get(API_PREFIX + '/users/:id', function(req, res) {
 });
 
 // PUT user - API call to update user info
-router.put(API_PREFIX + '/users/:id', function(req, res) {
+router.put(API_PREFIX + '/users/:id', util.validateSession, function(req, res) {
 
     // Initialize database and collection variables
     var db = req.db;
@@ -151,8 +95,43 @@ router.put(API_PREFIX + '/users/:id', function(req, res) {
     });
 });
 
+// POST session object - API call to initiate a new session
+router.post(API_PREFIX + '/sessions', function(req, res) {
+
+    // Initialize database and collection variables
+    var db = req.db;
+    var collUsers = db.get(COLL_USERS);
+    var collSessions = db.get(COLL_SESSIONS);
+
+    // Retrieve the specified user object from the database collection
+    collUsers.findOne({ 'email': req.body.email, 'password': req.body.password }, function(err, result) {
+        if (err) {
+            res.status(err.error.status).json(err);
+        } else if (result === null) {
+            err = util.generateError(ERR_INVALID_LOGIN_CREDENTIALS, 400, ERR_INVALID_LOGIN_CREDENTIALS);
+            res.status(err.error.status).json(err);
+        } else {
+
+            // Initiate the session object
+            var session = {
+                'userId': result._id,
+                'expiration': Date.now() + 1800000
+            };
+
+            // Insert the session into the database collection
+            collSessions.insert(session, function(err, result) {
+                if (err) {
+                    res.status(err.error.status).json(err);
+                } else {
+                    res.status(200).json(result);
+                }
+            });
+        }
+    });
+});
+
 // POST collector object - API call to create new collector service
-router.post(API_PREFIX + '/collectors', function(req, res) {
+router.post(API_PREFIX + '/collectors', util.validateSession, function(req, res) {
 
     // Initialize database and collection variables
     var db = req.db;
@@ -203,7 +182,7 @@ router.post(API_PREFIX + '/collectors', function(req, res) {
 });
 
 /* GET collectors - API call to get all collectors TODO: remove this call for production*/
-router.get(API_PREFIX + '/collectors', function(req, res) {
+router.get(API_PREFIX + '/collectors', util.validateSession, function(req, res) {
     var db = req.db;
     var collection = db.get(COLL_COLLECTORS);
 
@@ -213,7 +192,7 @@ router.get(API_PREFIX + '/collectors', function(req, res) {
 });
 
 // GET collector object - API call to get collector service info
-router.get(API_PREFIX + '/collectors/:id', function(req, res) {
+router.get(API_PREFIX + '/collectors/:id', util.validateSession, function(req, res) {
 
     // Initialize database and collection variables
     var db = req.db;
@@ -230,7 +209,7 @@ router.get(API_PREFIX + '/collectors/:id', function(req, res) {
 });
 
 // PUT collector object - API call to update collector service info
-router.put(API_PREFIX + '/collectors/:id', function(req, res) {
+router.put(API_PREFIX + '/collectors/:id', util.validateSession, function(req, res) {
 
     // Initialize database and collection variables
     var db = req.db;
@@ -302,7 +281,7 @@ router.put(API_PREFIX + '/collectors/:id', function(req, res) {
 });
 
 // GET authorization token - API call to generate new authorization token for collector service
-router.get(API_PREFIX + '/collectors/:id/generateAuthToken', function(req, res) {
+router.get(API_PREFIX + '/collectors/:id/generateAuthToken', util.validateSession, function(req, res) {
 
     // Initialize database and collection variables
     var db = req.db;
@@ -378,7 +357,7 @@ router.post(API_PREFIX + '/collectors/:authToken/records', function(req, res) {
 });
 
 /* GET records - API call to get all records for a collector service */
-router.get(API_PREFIX + '/collectors/:id/records', function(req, res) {
+router.get(API_PREFIX + '/collectors/:id/records', util.validateSession, function(req, res) {
 
     // Initialize database and collection variables
     var db = req.db;
