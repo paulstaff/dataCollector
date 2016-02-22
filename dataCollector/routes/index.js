@@ -75,6 +75,8 @@ var TEMPLATE_TYPE_INT = 'integer';
 var TEMPLATE_TYPE_DEC = 'decimal';
 var TEMPLATE_TYPE_OBJ = 'object';
 
+var ERR_COLLECTOR_DOES_NOT_EXIST = 'The collector requested does not exist. Check that the _id provided is correct.';
+
 /* POST user - API call to create user */
 
 /* GET user - API call to log user in */
@@ -172,69 +174,78 @@ router.put(API_PREFIX + '/collectors/:id', function(req, res) {
             res.status(err.error.status).json(err);
         } else {
 
-            // Initialize the collector object
-            var collector = {
-                '_id': req.params.id,
-                'name': req.body.name,
-                'description': req.body.description,
-                'authToken': result.authToken,
-                'status': STATUS_ACTIVE,
-                'options': {
-                    'allowExtraFields': OPT_TRUE
-                },
-                'template': []
-            };
+            // Check if result is null
+            if (result === null) {
+                err = util.generateError(ERR_COLLECTOR_DOES_NOT_EXIST, 404, ERR_COLLECTOR_DOES_NOT_EXIST);
+                res.status(err.error.status).json(err);
+            } else {
 
-            // Set the status of the collector
-            if (req.body.status == STATUS_INACTIVE) {
-                collector.status = STATUS_INACTIVE;
-            }
+                // Initialize the collector object
+                var collector = {
+                    '_id': req.params.id,
+                    'name': req.body.name,
+                    'description': req.body.description,
+                    'authToken': result.authToken,
+                    'status': STATUS_ACTIVE,
+                    'options': {
+                        'allowExtraFields': OPT_TRUE
+                    },
+                    'template': []
+                };
 
-            // Set the allowExtraFields option
-            if (req.body.options.allowExtraFields == OPT_FALSE) {
-                collector.options.allowExtraFields = OPT_FALSE;
-            }
-
-            // Loop through all fields in the template
-            for (var i = 0; i < req.body.template.length; i++) {
-
-                // Test that a field name exists and the field type is specified
-                if (req.body.template[i].hasOwnProperty('fieldname') &&
-                    req.body.template[i].fieldname != '' &&
-                    req.body.template[i].hasOwnProperty('type') && (
-                    req.body.template[i].type == TEMPLATE_TYPE_TXT ||
-                    req.body.template[i].type == TEMPLATE_TYPE_INT ||
-                    req.body.template[i].type == TEMPLATE_TYPE_DEC ||
-                    req.body.template[i].type == TEMPLATE_TYPE_OBJ )) {
-
-                    // Push the field into the collector template
-                    collector.template.push( { 'fieldname': req.body.template[i].fieldname, 'type': req.body.template[i].type } );
+                // Set the status of the collector
+                if (req.body.status == STATUS_INACTIVE) {
+                    collector.status = STATUS_INACTIVE;
                 }
-            }
 
-            // Modify the current document to reflect changes
-            collCollectors.findAndModify({ '_id': collector._id }, collector, { 'new': true }, function(err, result) {
-                if (err) {
-                    res.status(err.error.status).json(err);
-                } else {
-                    res.status(200).json(result);
+                // Set the allowExtraFields option
+                if (req.body.options.allowExtraFields == OPT_FALSE) {
+                    collector.options.allowExtraFields = OPT_FALSE;
                 }
-            });
+
+                // Loop through all fields in the template
+                for (var i = 0; i < req.body.template.length; i++) {
+
+                    // Test that a field name exists and the field type is specified
+                    if (req.body.template[i].hasOwnProperty('fieldname') &&
+                        req.body.template[i].fieldname != '' &&
+                        req.body.template[i].hasOwnProperty('type') && (
+                        req.body.template[i].type == TEMPLATE_TYPE_TXT ||
+                            req.body.template[i].type == TEMPLATE_TYPE_INT ||
+                            req.body.template[i].type == TEMPLATE_TYPE_DEC ||
+                            req.body.template[i].type == TEMPLATE_TYPE_OBJ )) {
+
+                        // Push the field into the collector template
+                        collector.template.push( { 'fieldname': req.body.template[i].fieldname, 'type': req.body.template[i].type } );
+                    }
+                }
+
+                // Modify the current document to reflect changes
+                collCollectors.findAndModify({ '_id': collector._id }, collector, { 'new': true }, function(err, result) {
+                    if (err) {
+                        res.status(err.error.status).json(err);
+                    } else {
+                        res.status(200).json(result);
+                    }
+                });
+            }
         }
     });
 });
 
-/* GET authorization token - API call to generate new authorization token for collector service */
+// GET authorization token - API call to generate new authorization token for collector service
 router.get(API_PREFIX + '/collectors/:id/generateAuthToken', function(req, res) {
-    var db = req.db;
-    var collection = db.get(COLL_COLLECTORS);
-    var collectorId = req.params.id;
 
-    collection.findAndModify({ '_id': collectorId }, { $set: { 'authToken': util.generateAuthToken() } }, { 'new': true }, function(err, result) {
-        if(err) {
-            res.send('There was an issue modifying the collector.');
+    // Initialize database and collection variables
+    var db = req.db;
+    var collCollectors = db.get(COLL_COLLECTORS);
+
+    // Generate and set a new authorization token
+    collCollectors.findAndModify({ '_id': req.params.id }, { $set: { 'authToken': util.generateAuthToken() } }, { 'new': true }, function(err, result) {
+        if (err) {
+            res.status(err.error.status).json(err);
         } else {
-            res.json(result);
+            res.status(200).json(result);
         }
     });
 });
