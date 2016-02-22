@@ -76,6 +76,7 @@ var TEMPLATE_TYPE_DEC = 'decimal';
 var TEMPLATE_TYPE_OBJ = 'object';
 
 var ERR_COLLECTOR_DOES_NOT_EXIST = 'The collector requested does not exist. Check that the _id provided is correct.';
+var ERR_INVALID_AUTH_TOKEN = 'The authentication token provided is not valid. Check that the authentication token for your data collector service has not been changed.';
 
 /* POST user - API call to create user */
 
@@ -250,50 +251,60 @@ router.get(API_PREFIX + '/collectors/:id/generateAuthToken', function(req, res) 
     });
 });
 
-/* POST record - API call to post data record to collector service */
+// POST record - API call to post data record to collector service
 router.post(API_PREFIX + '/collectors/:authToken/records', function(req, res) {
+
+    // Initialize database and collection variables
     var db = req.db;
-    var collection = db.get(COLL_COLLECTORS);
-    var authToken = req.params.authToken;
+    var collCollectors = db.get(COLL_COLLECTORS);
+    var collRecords = db.get(COLL_RECORDS);
 
-    collection.findOne({ 'authToken': authToken }, function(err, result) {
-        if(result !== null) {
-            var collRecords = db.get(COLL_RECORDS);
+    // Find the service associated with the provided authToken
+    collCollectors.findOne({ 'authToken': req.params.authToken }, function(err, result) {
+        if (result === null) {
+            err = util.generateError(ERR_INVALID_AUTH_TOKEN, 404, ERR_INVALID_AUTH_TOKEN);
+            res.status(err.error.status).json(err);
+        } else {
 
+            // Initialize the record object
             var record = {
                 'timestamp': Date.now(),
                 'ipAddress': req.ip,
                 'collectorId': result._id,
-                'data': {},
-                'extraFields': {}
+                'data': {}
             };
 
-            var i;
+            // Add extraFields property if allowExtraFields option is set to true
+            if (result.options.allowExtraFields == OPT_TRUE) {
+                record.extraFields = {};
+            }
 
-            for(i = 0; i < result.template.length; i++) {
+            // Loop through template and add all fields to the record data
+            for(var i = 0; i < result.template.length; i++) {
                 record.data[result.template[i].property] = '';
             }
 
+            // Loop through all data properties in the request
             for(var key in req.body.data) {
+
+                // If the property is part of the template, add to to data, else add to extraFields
                 if(record.data.hasOwnProperty(key)) {
                     record.data[key] = req.body.data[key];
-                } else {
+                } else if (result.options.allowExtraFields == OPT_TRUE) {
                     record.extraFields[key] = req.body.data[key];
                 }
             }
 
+            // Insert the record into the database
             collRecords.insert(record, function(err, result) {
-                if(err) {
-                    res.json(err);
+                if (err) {
+                    res.status(err.error.status).json(err);
                 } else {
                     res.status(200).json(result);
                 }
             });
-        } else {
-            res.send('Invalid authentication token!');
         }
     });
-
 });
 
 /* GET records - API call to get all records for a collector service */
