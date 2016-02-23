@@ -1,34 +1,74 @@
-var express = require('express');
-var router = express.Router();
+var util = require('../util/util.js');
 
-/* GET users listing. */
-router.get('/userlist', function(req, res) {
-    var db = req.db;
-    var collection = db.get('userlist');
-    collection.find({},{},function(e,docs) {
-        res.json(docs);
-    });
-});
+var Users = function() {
 
-/* POST user */
-router.post('/adduser', function(req, res) {
-    var db = req.db;
-    var collection = db.get('userlist');
-    collection.insert(req.body, function(err, result) {
-        res.send(
-            (err === null) ? { msg: '' } : { msg: err }
-        );
-    });
-});
+    this.create = function(req, res) {
 
-/* DELETE user */
-router.delete('/deleteuser/:id', function(req, res) {
-    var db = req.db;
-    var collection = db.get('userlist');
-    var userToDelete = req.params.id;
-    collection.remove({ '_id': userToDelete }, function(err) {
-        res.send((err === null) ? { msg: '' } : { msg: 'error: ' + err });
-    });
-});
+        // Initialize database and collection variables
+        var db = req.db;
+        var collUsers = db.get(util.COLL_USERS);
 
-module.exports = router;
+        // Initialize user object
+        var user = {
+            'email': req.body.email,
+            'password': req.body.password,
+            'status': util.STATUS_ACTIVE
+        };
+
+        // Insert the user object into the database collection
+        collUsers.insert(user, function(err, result) {
+            if (err) {
+                res.status(err.error.status).json(err);
+            } else {
+                res.status(200).json(result);
+            }
+        });
+    };
+
+    this.get = function(req, res) {
+
+        // Initialize database and collection variables
+        var db = req.db;
+        var collUsers = db.get(util.COLL_USERS);
+
+        // Retrieve the specified user object from the database collection
+        collUsers.findOne({ '_id': req.params.id }, function(err, result) {
+            if (err) {
+                res.status(err.error.status).json(err);
+            } else {
+                res.status(200).json(result);
+            }
+        });
+    };
+
+    this.update = function(req, res) {
+
+        // Initialize database and collection variables
+        var db = req.db;
+        var collUsers = db.get(util.COLL_USERS);
+
+        // Initialize user object
+        var user = {
+            '_id': req.params.id,
+            'email': req.body.email,
+            'password': req.body.password,
+            'status': util.STATUS_ACTIVE
+        };
+
+        // Set the status of the user
+        if (req.body.status == util.STATUS_INACTIVE) {
+            user.status = util.STATUS_INACTIVE;
+        }
+
+        // Insert the user object into the database collection
+        collUsers.findAndModify({ '_id': user._id }, { $set: user }, { 'new': true }, function(err, result) {
+            if (err) {
+                res.status(err.error.status).json(err);
+            } else {
+                res.status(200).json(result);
+            }
+        });
+    };
+};
+
+module.exports = Users;
