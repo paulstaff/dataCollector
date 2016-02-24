@@ -7,7 +7,10 @@ $(document).ready(function() {
     $('#btnRegister').on('click', registerUser);
 });
 
-function registerUser() {
+function registerUser(event) {
+
+    // Prevent form from submitting
+    event.preventDefault();
 
     // Initialize variables
     var error = 0;
@@ -38,15 +41,20 @@ function registerUser() {
             data: newUser,
             url: API_PREFIX + '/users',
             dataType: 'JSON'
-        }).done(function(response) {
-            // if response is good, clear fields and populate table
+        }).always(function(response) {
+
+            console.log(response);
+
+            // if API call is successful, set session cookie and redirect
             if(response.error == null) {
+                Cookies.set('session', response.response);
                 window.location = ('/frontend/collectorList');
             }
             else {
-                // display error
-                alert('Error: ' + response.error.displayMsg);
+                alert('Error: ' + response.responseJSON.error.displayMsg);
             }
         });
+    } else {
+        alert('There is an issue with your login information!');
     }
 }

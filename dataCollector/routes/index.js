@@ -19,6 +19,14 @@ router.get('/frontend/login', function(req, res) {
     res.render('login', { title: 'Login' });
 });
 
+router.get('/frontend/register', function(req, res) {
+    res.render('register', { title: 'Register' });
+});
+
+router.get('/frontend/collectorList', function(req, res) {
+    res.render('collectorList', { title: 'Collector Services' });
+});
+
 
 
 // POST user - API call to create user

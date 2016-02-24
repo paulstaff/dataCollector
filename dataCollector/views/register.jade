@@ -1,8 +1,9 @@
 extends layout
 
 block content
-  h1= Register
-  form#formRegister(name="register",method="post",action="")
+  script(src='/javascripts/register.js')
+  h1= title
+  form#formRegister(name="register")
     input#inputEmail(type="text", placeholder="Email Address", name="email")
     input#inputPassword(type="password", placeholder="Password", name="password")
-    button#btnRegister(type="submit") Register
+    button#btnRegister Register
