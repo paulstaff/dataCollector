@@ -11,6 +11,16 @@ var users = new UserRouter();
 var sessions = new SessionRouter();
 var collectors = new CollectorRouter();
 
+router.get('/', function(req, res) {
+    res.render('index', { title: 'Express' });
+});
+
+router.get('/frontend/login', function(req, res) {
+    res.render('login', { title: 'Login' });
+});
+
+
+
 // POST user - API call to create user
 router.post(API_PREFIX + '/users', users.create);
 

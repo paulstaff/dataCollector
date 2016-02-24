@@ -1,12 +1,23 @@
 
 var API_PREFIX = '/api/v1';
 
-function createUser() {
+$(document).ready(function() {
 
+    // Register user event on button click
+    $('#btnLogin').on('click', loginUser);
+});
+
+function loginUser(event) {
+
+    // Prevent form from submitting
+    event.preventDefault();
+
+    // Initialize variables
     var error = 0;
     var inputEmail = $('#inputEmail').val();
     var inputPassword = $('#inputPassword').val();
 
+    // Validate fields
     if (inputEmail == '') {
         error = 1;
     }
@@ -15,27 +26,36 @@ function createUser() {
         error = 1;
     }
 
+    // If no errors, initiate session for user
     if(error == 0) {
 
-        var newUser = {
+        // Create user variable
+        var user = {
             'email': inputEmail,
             'password': inputPassword
         };
 
+        // Initiate POST request
         $.ajax({
             type: 'POST',
-            data: newUser,
-            url: API_PREFIX + '/users',
+            data: user,
+            url: API_PREFIX + '/sessions',
             dataType: 'JSON'
-        }).done(function(response) {
-            // if response is good, clear fields and populate table
+        }).always(function(response) {
+
+            console.log('here');
+            console.log(response);
+
+            // if API call is successful, set session cookie and redirect
             if(response.error == null) {
+                Cookies.set('session', response.response);
                 window.location = ('/frontend/collectorList');
             }
             else {
-                // display error
-                alert('Error: ' + response.error.displayMsg);
+                alert('Error: ' + response.responseJSON.error.displayMsg);
             }
         });
+    } else {
+        alert('There is an issue with your login information!');
     }
 }

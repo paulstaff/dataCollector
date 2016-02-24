@@ -1,8 +1,9 @@
 extends layout
 
 block content
-  h1= Login
-  form#formLogin(name="login",method="post",action="")
+  script(src='/javascripts/login.js')
+  h1= title
+  form#formLogin(name="login")
     input#inputEmail(type="text", placeholder="Email Address", name="email")
     input#inputPassword(type="password", placeholder="Password", name="password")
-    button#btnLogin(type="submit") Login
+    button#btnLogin Login
