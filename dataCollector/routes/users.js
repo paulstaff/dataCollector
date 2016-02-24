@@ -20,7 +20,7 @@ var Users = function() {
             if (err) {
                 res.status(err.error.status).json(err);
             } else {
-                res.status(200).json(result);
+                res.status(200).json(util.generateSuccess(result));
             }
         });
     };
@@ -36,7 +36,7 @@ var Users = function() {
             if (err) {
                 res.status(err.error.status).json(err);
             } else {
-                res.status(200).json(result);
+                res.status(200).json(util.generateSuccess(result));
             }
         });
     };
@@ -65,7 +65,7 @@ var Users = function() {
             if (err) {
                 res.status(err.error.status).json(err);
             } else {
-                res.status(200).json(result);
+                res.status(200).json(util.generateSuccess(result));
             }
         });
     };

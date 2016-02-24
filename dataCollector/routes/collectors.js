@@ -14,6 +14,7 @@ var Collectors = function() {
             'description': req.body.description,
             'authToken': util.generateAuthToken(),
             'status': util.STATUS_ACTIVE,
+            'userId': req.body.userId,
             'options': {
                 'allowExtraFields': util.OPT_TRUE
             },
@@ -47,7 +48,7 @@ var Collectors = function() {
             if (err) {
                 res.status(err.error.status).json(err);
             } else {
-                res.status(200).json(result);
+                res.status(200).json(util.generateSuccess(result));
             }
         });
     };
@@ -63,7 +64,23 @@ var Collectors = function() {
             if (err) {
                 res.status(err.error.status).json(err);
             } else {
-                res.status(200).json(result);
+                res.status(200).json(util.generateSuccess(result));
+            }
+        });
+    };
+
+    this.retrieveAll = function(req, res) {
+
+        // Initialize database and collection variables
+        var db = req.db;
+        var collCollectors = db.get(util.COLL_COLLECTORS);
+
+        // Retrieve the specified collector service object from the database collection
+        collCollectors.find({ 'userId': req.params.userId }, function(err, result) {
+            if (err) {
+                res.status(err.error.status).json(err);
+            } else {
+                res.status(200).json(util.generateSuccess(result));
             }
         });
     };
@@ -131,7 +148,7 @@ var Collectors = function() {
                         if (err) {
                             res.status(err.error.status).json(err);
                         } else {
-                            res.status(200).json(result);
+                            res.status(200).json(util.generateSuccess(result));
                         }
                     });
                 }
@@ -150,7 +167,7 @@ var Collectors = function() {
             if (err) {
                 res.status(err.error.status).json(err);
             } else {
-                res.status(200).json(result);
+                res.status(200).json(util.generateSuccess(result));
             }
         });
     };
@@ -206,7 +223,7 @@ var Collectors = function() {
                     if (err) {
                         res.status(err.error.status).json(err);
                     } else {
-                        res.status(200).json(result);
+                        res.status(200).json(util.generateSuccess(result));
                     }
                 });
             }
@@ -227,7 +244,7 @@ var Collectors = function() {
             if (err) {
                 res.status(err.error.status).json(err);
             } else {
-                res.status(200).json(result);
+                res.status(200).json(util.generateSuccess(result));
             }
         });
     };

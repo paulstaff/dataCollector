@@ -39,6 +39,9 @@ router.get(API_PREFIX + '/collectors', util.validateSession, function(req, res) 
 // GET collector object - API call to get collector service info
 router.get(API_PREFIX + '/collectors/:id', util.validateSession, collectors.retrieve);
 
+// GET list of collector objects - API call to get list of collector objects for a particular user
+router.get(API_PREFIX + '/collectors/users/:userId', util.validateSession, collectors.retrieveAll);
+
 // PUT collector object - API call to update collector service info
 router.put(API_PREFIX + '/collectors/:id', util.validateSession, collectors.update);
 
