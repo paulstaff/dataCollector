@@ -1,4 +1,15 @@
 extends layout
 
 block content
+  script(src='/javascripts/collectorList.js')
   h1= title
+
+  #collectorList
+    table
+      thead
+        th Service Name
+        th Status
+        th Records
+        th Date Created
+        th Last Record
+      tbody
