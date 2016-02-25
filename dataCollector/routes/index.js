@@ -27,6 +27,10 @@ router.get('/frontend/collectorList', function(req, res) {
     res.render('collectorList', { title: 'Collector Services' });
 });
 
+router.get('/frontend/collector/:id', function(req, res) {
+    res.render('collector', { title: 'Collector Services' });
+});
+
 
 
 // POST user - API call to create user
@@ -36,10 +40,13 @@ router.post(API_PREFIX + '/users', users.create);
 router.get(API_PREFIX + '/users/:id', sessions.validate, users.get);
 
 // PUT user - API call to update user info
-router.put(API_PREFIX + '/users/:id', util.validateSession, users.update);
+router.put(API_PREFIX + '/users/:id', sessions.validate, users.update);
 
 // POST session object - API call to initiate a new session
 router.post(API_PREFIX + '/sessions', sessions.initiate);
+
+// GET session - API call to check session for validity
+router.get(API_PREFIX + '/sessions', sessions.get);
 
 // POST collector object - API call to create new collector service
 router.post(API_PREFIX + '/collectors', util.validateSession, collectors.create);

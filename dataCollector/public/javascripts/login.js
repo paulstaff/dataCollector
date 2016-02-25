@@ -49,7 +49,7 @@ function loginUser(event) {
             // if API call is successful, set session cookie and redirect
             if(response.error == null) {
                 Cookies.set('session', response.response);
-                window.location = ('/frontend/collectorList');
+                window.location = '/frontend/collectorList';
             }
             else {
                 alert('Error: ' + response.responseJSON.error.displayMsg);

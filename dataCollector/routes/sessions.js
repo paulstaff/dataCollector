@@ -74,6 +74,45 @@ var Sessions = function() {
             }
         });
     };
+
+    this.get = function(req, res) {
+
+        // Initialize database and collection variable
+        var db = req.db;
+        var collSessions = db.get(util.COLL_SESSIONS);
+
+        var sessionId = req.get('sessionId');
+
+        // Retrieve the specified session object from the database collection
+        collSessions.findOne({ '_id': sessionId }, function(err, result) {
+            if (err) {
+                res.status(err.error.status).json(err);
+            } else if (result === null) {
+                err = util.generateError(util.ERR_INVALID_SESSION_ID, 400, util.ERR_INVALID_SESSION_ID);
+                res.status(err.error.status).json(err);
+            } else if (Date.now() > result.expiration) {
+                err = util.generateError(util.ERR_EXPIRED_SESSION_ID, 400, util.ERR_EXPIRED_SESSION_ID);
+                res.status(err.error.status).json(err);
+            } else {
+
+                // Initiate the session object
+                var session = {
+                    '_id': result._id,
+                    'userId': result._id,
+                    'expiration': Date.now() + 1800000
+                };
+
+                // Insert the session into the database collection
+                collSessions.findAndModify( { '_id': session._id }, session, function(err, result) {
+                    if (err) {
+                        res.status(err.error.status).json(err);
+                    } else {
+                        res.status(200).json(util.generateSuccess(result));
+                    }
+                });
+            }
+        });
+    };
 };
 
 module.exports = Sessions;

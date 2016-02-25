@@ -1,0 +1,16 @@
+extends layout
+
+block content
+  script(src='/javascripts/collector.js')
+  h1= title
+
+  button#btnEditDetails Edit Collector Service
+
+  #collectorDetails
+    p <strong>Description:</strong> This is the description
+    p <strong>Status:</strong> Active
+
+  #recordList
+    table
+      thead
+      tbody
