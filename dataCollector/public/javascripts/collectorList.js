@@ -86,3 +86,4 @@ function goToCollector(event) {
     // retrieve username from link rel attribute
     window.location = '/frontend/collector/' + $(this).attr('rel');
 }
+

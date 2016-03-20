@@ -81,3 +81,15 @@ fieldset {
     padding:5px 10px;
     text-align:center;
 }
+
+.btn {
+    display: inline-block;
+    background: #CCCCCC;
+    padding: 8px 15px;
+    margin: 5px;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background: #DDDDDD;
+}

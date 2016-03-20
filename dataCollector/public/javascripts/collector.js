@@ -225,20 +225,29 @@ function openEditTemplate() {
 
     var content =   '<div class="psModalItem">';
 
+    var fieldId = '';
+
     $.each(collector.template, function() {
 
-        content += '<div class="templateField">';
+        fieldId = generateId();
+
+        content += '<div class="templateField" id="' + fieldId + '">';
         content += '    <div class="inputItem">';
         content += '        <label>Fieldname:</label>';
-        content += '        <input type="text" value="' + this.fieldname + '">';
+        content += '        <input class="fieldname" type="text" value="' + this.fieldname + '">';
+        content += '    </div>';
         content += '    <div class="inputItem">';
         content += '        <label>Type:</label>';
-        content += generateSelect(['text', 'integer', 'decimal', 'object'], this.type);
+        content += '    </div>';
+        content += generateSelect(['text', 'integer', 'decimal', 'object'], this.type, 'type');
         content += '    <div class="inputItem">';
+        content += '        <div class="btn" onclick="deleteField(\'' + fieldId + '\')">Delete</div> ';
+        content += '    </div>';
         content += '</div>';
 
     });
 
+    content += '<div class="btn" id="addField" onclick="addField()">New Field</div> ';
     content += '<div>';
     content += '</div>';
     content += '<div id="psModalFooter">';
@@ -253,9 +262,48 @@ function openEditTemplate() {
     psModal.open(title, content, options);
 }
 
-function generateSelect(options, selected) {
+function generateId() {
 
-    var select = '<select>';
+    var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    var result = '';
+
+    for (var i = 10; i > 0; --i) result += chars[Math.floor(Math.random() * chars.length)];
+    return result;
+
+}
+
+function addField() {
+
+    var fieldId = generateId();
+
+    var newField = '';
+
+    newField += '<div class="templateField" id="' + fieldId + '">';
+    newField += '    <div class="inputItem">';
+    newField += '        <label>Fieldname:</label>';
+    newField += '        <input class="fieldname" type="text">';
+    newField += '    </div>';
+    newField += '    <div class="inputItem">';
+    newField += '        <label>Type:</label>';
+    newField += generateSelect(['text', 'integer', 'decimal', 'object'], 'text', 'type');
+    newField += '    </div>';
+    newField += '    <div class="inputItem">';
+    newField += '       <div class="btn" onclick="deleteField(' + fieldId + ')">Delete</div> ';
+    newField += '    </div>';
+    newField += '</div>';
+
+    $('#addField').before(newField);
+
+}
+
+function deleteField(fieldId) {
+    console.log('deleting: ' + fieldId);
+    $('#' + fieldId).remove();
+}
+
+function generateSelect(options, selected, inputClass) {
+
+    var select = '<select class="' + inputClass + '">';
 
     $.each(options, function(key, value) {
         if(value == selected) {
@@ -272,35 +320,23 @@ function generateSelect(options, selected) {
 
 function prepCollectorTemplate() {
 
-    var error = false;
+    var template = [];
 
-    var name = $('#inputName').val();
-    var description = $('#inputDescription').val();
+    $('.templateField').each(function() {
 
-    if (name == '') {
-        error = true;
-    }
-
-    if (description == '') {
-        error = true;
-    }
-
-    if (error == false) {
-
-        collector.name = name;
-        collector.description = description;
-
-        if ($('#inputAllowExtraFields').is(':checked')) {
-            collector.options.allowExtraFields = 1;
-        } else {
-            collector.options.allowExtraFields = 0;
-        }
-
-        updateCollector(function() {
-            psModal.close();
-            displayCollectorDetails();
+        template.push({
+            'fieldname': $(this).find('.fieldname').val(),
+            'type': $(this).find('.type').val()
         });
-    }
+
+    });
+
+    collector.template = template;
+
+    updateCollector(function() {
+        psModal.close();
+        displayCollectorDetails();
+    });
 
 }
 
