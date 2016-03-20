@@ -1,25 +1,25 @@
 
 var API_PREFIX = '/api/v1';
 
+var sessionId = '';
 var collector = {};
 var collectorRecords = {};
 
 $(document).ready(function() {
 
     // Validate session and redirect if not valid
-    getSession();
-
-    // Retrieve data about collector services
-    retrieveCollectorDetails();
+    getSession(retrieveCollectorDetails);
 
     $('#btnEditDetails').on('click', openEditDetails);
+    $('#btnEditTemplate').on('click', openEditTemplate);
 });
 
-function getSession() {
+function getSession(callback) {
 
-    var sessionId = jQuery.parseJSON(Cookies.get('session'))._id;
+    // Set sessionId based on stored value
+    sessionId = jQuery.parseJSON(Cookies.get('session'))._id;
 
-    // Initiate GET request
+    // Initiate GET request to verify sessionId
     $.ajax({
         type: 'GET',
         url: API_PREFIX + '/sessions/',
@@ -27,9 +27,10 @@ function getSession() {
         beforeSend: function(xhr) { xhr.setRequestHeader('sessionId', sessionId); }
     }).always(function(response) {
 
-        // if API call is successful, set session cookie and redirect
+        // if API call is successful, set session cookie, otherwise redirect to login page
         if(response.error == null) {
             Cookies.set('session', response.response);
+            callback();
         } else {
             window.location = '/frontend/login';
         }
@@ -38,28 +39,25 @@ function getSession() {
 
 function retrieveCollectorDetails() {
 
+    // TODO: probably need a better way to do this...
+    // Retrieve collectorId from path
     var path = location.pathname.split('/');
-    var collectorId = path[path.length - 1];
+    collector._id = path[path.length - 1];
 
-    console.log('CollectorId: ' + collectorId);
-
-    var sessionId = jQuery.parseJSON(Cookies.get('session'))._id;
-
-    // Initiate GET request
+    // Initiate API request to retrieve collector details
     $.ajax({
         type: 'GET',
-        url: API_PREFIX + '/collectors/' + collectorId,
+        url: API_PREFIX + '/collectors/' + collector._id,
         dataType: 'JSON',
         beforeSend: function(xhr) { xhr.setRequestHeader('sessionId', sessionId); }
     }).always(function(response) {
-
-        // if API call is successful, set session cookie and redirect
         if(response.error == null) {
-            console.log(response.response);
 
+            // Set collector object and display the details
             collector = response.response;
-
             displayCollectorDetails();
+
+            // Retrieve records for the collector
             retrieveRecords();
 
         } else {
@@ -84,9 +82,7 @@ function displayCollectorDetails() {
 
 function retrieveRecords() {
 
-    var sessionId = jQuery.parseJSON(Cookies.get('session'))._id;
-
-    // Initiate GET request
+    // Initiate API request to retrieve records
     $.ajax({
         type: 'GET',
         url: API_PREFIX + '/collectors/' + collector._id + '/records',
@@ -190,6 +186,91 @@ function openEditDetails() {
 }
 
 function prepCollectorDetails() {
+
+    var error = false;
+
+    var name = $('#inputName').val();
+    var description = $('#inputDescription').val();
+
+    if (name == '') {
+        error = true;
+    }
+
+    if (description == '') {
+        error = true;
+    }
+
+    if (error == false) {
+
+        collector.name = name;
+        collector.description = description;
+
+        if ($('#inputAllowExtraFields').is(':checked')) {
+            collector.options.allowExtraFields = 1;
+        } else {
+            collector.options.allowExtraFields = 0;
+        }
+
+        updateCollector(function() {
+            psModal.close();
+            displayCollectorDetails();
+        });
+    }
+
+}
+
+function openEditTemplate() {
+
+    var title = "Edit Collector Service";
+
+    var content =   '<div class="psModalItem">';
+
+    $.each(collector.template, function() {
+
+        content += '<div class="templateField">';
+        content += '    <div class="inputItem">';
+        content += '        <label>Fieldname:</label>';
+        content += '        <input type="text" value="' + this.fieldname + '">';
+        content += '    <div class="inputItem">';
+        content += '        <label>Type:</label>';
+        content += generateSelect(['text', 'integer', 'decimal', 'object'], this.type);
+        content += '    <div class="inputItem">';
+        content += '</div>';
+
+    });
+
+    content += '<div>';
+    content += '</div>';
+    content += '<div id="psModalFooter">';
+    content += '   <div class="btn" onclick="prepCollectorTemplate()">Save</div>';
+    content += '   <div class="btn" onclick="psModal.close()">Cancel</div>';
+    content += '</div> ';
+
+    var options = {
+        width: 800
+    };
+
+    psModal.open(title, content, options);
+}
+
+function generateSelect(options, selected) {
+
+    var select = '<select>';
+
+    $.each(options, function(key, value) {
+        if(value == selected) {
+            select += '<option value="' + value + '" selected>' + value + '</option>';
+        } else {
+            select += '<option value="' + value + '">' + value + '</option>';
+        }
+    });
+
+    select += '</select>';
+
+    return select;
+}
+
+function prepCollectorTemplate() {
 
     var error = false;
 

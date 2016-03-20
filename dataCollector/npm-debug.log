@@ -18,7 +18,7 @@
 11 error You can get their info via:
 11 error     npm owner ls dataCollector
 11 error There is likely additional logging output above.
-12 error System Darwin 15.0.0
+12 error System Darwin 15.3.0
 13 error command "node" "/usr/local/bin/npm" "start"
 14 error cwd /Users/Paul/Development/Other Projects/dataCollector/dataCollector
 15 error node -v v0.10.31

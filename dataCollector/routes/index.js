@@ -31,8 +31,6 @@ router.get('/frontend/collector/:id', function(req, res) {
     res.render('collector', { title: 'Collector Services' });
 });
 
-
-
 // POST user - API call to create user
 router.post(API_PREFIX + '/users', users.create);
 
